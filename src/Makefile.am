@@ -24,11 +24,14 @@
 # _ladir passes a dummy rpath to libtool so the thing will actually link
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
 
+SUBDIRS = uxa
+
 AM_CFLAGS = $(XORG_CFLAGS) $(DRM_CFLAGS) $(UDEV_CFLAGS) $(CWARNFLAGS)
 
 gma500_drv_la_LTLIBRARIES = gma500_drv.la
 gma500_drv_la_LDFLAGS = -module -avoid-version
 gma500_drv_la_LIBADD = @UDEV_LIBS@ @DRM_LIBS@
+gma500_drv_la_LIBADD += uxa/libuxa.la $(XORG_LIBS)
 gma500_drv_ladir = @moduledir@/drivers
 
 gma500_drv_la_SOURCES = \

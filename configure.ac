@@ -98,6 +98,7 @@ AC_SUBST([moduledir])
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	src/uxa/Makefile
 	man/Makefile
 ])
 
