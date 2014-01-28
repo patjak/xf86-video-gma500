@@ -104,18 +104,18 @@ typedef struct {
 } drmmode_output_private_rec, *drmmode_output_private_ptr;
 
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
-typedef struct _msPixmapPriv {
+typedef struct _gmaPixmapPriv {
     uint32_t fb_id;
     struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
-} msPixmapPrivRec, *msPixmapPrivPtr;
+} gmaPixmapPrivRec, *gmaPixmapPrivPtr;
 
 
-extern DevPrivateKeyRec msPixmapPrivateKeyRec;
-#define msPixmapPrivateKey (&msPixmapPrivateKeyRec)
+extern DevPrivateKeyRec gmaPixmapPrivateKeyRec;
+#define gmaPixmapPrivateKey (&gmaPixmapPrivateKeyRec)
 
-#define msGetPixmapPriv(drmmode, p) ((msPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))
+#define gmaGetPixmapPriv(drmmode, p) ((gmaPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))
 
-void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
+void *drmmode_map_slave_bo(drmmode_ptr drmmode, gmaPixmapPrivPtr ppriv);
 Bool drmmode_SetSlaveBO(PixmapPtr ppix,
 			drmmode_ptr drmmode,
 			int fd_handle, int pitch, int size);

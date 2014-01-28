@@ -33,7 +33,7 @@
 #include <damage.h>
 
 #include "drmmode_display.h"
-#define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, msg);
+#define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, gmag);
 
 typedef struct
 {
@@ -43,7 +43,7 @@ typedef struct
     ScrnInfoPtr pScrn_2;
 } EntRec, *EntPtr;
 
-typedef struct _modesettingRec
+typedef struct _gma500Rec
 {
     int fd;
 
@@ -76,6 +76,6 @@ typedef struct _modesettingRec
     DamagePtr damage;
     Bool dirty_enabled;
 
-} modesettingRec, *modesettingPtr;
+} gma500Rec, *gma500Ptr;
 
-#define modesettingPTR(p) ((modesettingPtr)((p)->driverPrivate))
+#define gma500PTR(p) ((gma500Ptr)((p)->driverPrivate))

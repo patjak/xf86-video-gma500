@@ -22,10 +22,10 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xf86-video-modesetting],
+AC_INIT([xf86-video-gma500],
         [0.8.1],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        [xf86-video-modesetting])
+        [xf86-video-gma500])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -91,7 +91,7 @@ AC_CHECK_FUNCS([drmPrimeFDToHandle])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 
-DRIVER_NAME=modesetting
+DRIVER_NAME=gma500
 AC_SUBST([DRIVER_NAME])
 AC_SUBST([moduledir])
 

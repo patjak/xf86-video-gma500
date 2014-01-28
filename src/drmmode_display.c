@@ -164,7 +164,7 @@ Bool drmmode_SetSlaveBO(PixmapPtr ppix,
 			drmmode_ptr drmmode, 
 			int fd_handle, int pitch, int size)
 {
-    	msPixmapPrivPtr ppriv = msGetPixmapPriv(drmmode, ppix);
+    	gmaPixmapPrivPtr ppriv = gmaGetPixmapPriv(drmmode, ppix);
 
 	ppriv->backing_bo = dumb_get_bo_from_handle(drmmode->fd, fd_handle, pitch, size);
 	if (!ppriv->backing_bo)
@@ -377,7 +377,7 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 		fb_id = drmmode->fb_id;
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
 		if (crtc->randr_crtc->scanout_pixmap) {
-    			msPixmapPrivPtr ppriv = msGetPixmapPriv(drmmode, crtc->randr_crtc->scanout_pixmap);
+    			gmaPixmapPrivPtr ppriv = gmaGetPixmapPriv(drmmode, crtc->randr_crtc->scanout_pixmap);
 			fb_id = ppriv->fb_id;
 			x = y = 0;
 		} else 
@@ -505,12 +505,12 @@ drmmode_set_scanout_pixmap(xf86CrtcPtr crtc, PixmapPtr ppix)
 {
 	drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 	drmmode_ptr drmmode = drmmode_crtc->drmmode;
-	msPixmapPrivPtr ppriv;
+	gmaPixmapPrivPtr ppriv;
 	void *ptr;
 
 	if (!ppix) {
 		if (crtc->randr_crtc->scanout_pixmap) {
-    			ppriv = msGetPixmapPriv(drmmode, crtc->randr_crtc->scanout_pixmap);
+    			ppriv = gmaGetPixmapPriv(drmmode, crtc->randr_crtc->scanout_pixmap);
 			drmModeRmFB(drmmode->fd, ppriv->fb_id);
 		}
 		if (drmmode_crtc->slave_damage) {
@@ -521,7 +521,7 @@ drmmode_set_scanout_pixmap(xf86CrtcPtr crtc, PixmapPtr ppix)
 		return TRUE;
 	}
 
-	ppriv = msGetPixmapPriv(drmmode, ppix);
+	ppriv = gmaGetPixmapPriv(drmmode, ppix);
 	if (!drmmode_crtc->slave_damage) {
 		drmmode_crtc->slave_damage = DamageCreate(NULL, NULL,
 							  DamageReportNone,
@@ -1263,7 +1263,7 @@ Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp)
 	drmmode_clones_init(pScrn, drmmode);
 
 #if XF86_CRTC_VERSION >= 5
-	xf86ProviderSetup(pScrn, NULL, "modesetting");
+	xf86ProviderSetup(pScrn, NULL, "gma500");
 #endif
 
 	xf86InitialConfiguration(pScrn, TRUE);
@@ -1526,7 +1526,7 @@ void *drmmode_map_front_bo(drmmode_ptr drmmode)
 }
 
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
-void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv)
+void *drmmode_map_slave_bo(drmmode_ptr drmmode, gmaPixmapPrivPtr ppriv)
 {
         int ret;
 

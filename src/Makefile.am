@@ -26,14 +26,14 @@
 
 AM_CFLAGS = $(XORG_CFLAGS) $(DRM_CFLAGS) $(UDEV_CFLAGS) $(CWARNFLAGS)
 
-modesetting_drv_la_LTLIBRARIES = modesetting_drv.la
-modesetting_drv_la_LDFLAGS = -module -avoid-version
-modesetting_drv_la_LIBADD = @UDEV_LIBS@ @DRM_LIBS@
-modesetting_drv_ladir = @moduledir@/drivers
+gma500_drv_la_LTLIBRARIES = gma500_drv.la
+gma500_drv_la_LDFLAGS = -module -avoid-version
+gma500_drv_la_LIBADD = @UDEV_LIBS@ @DRM_LIBS@
+gma500_drv_ladir = @moduledir@/drivers
 
-modesetting_drv_la_SOURCES = \
+gma500_drv_la_SOURCES = \
 	 compat-api.h \
-	 driver.c \
-	 driver.h \
+	 gma_driver.c \
+	 gma_driver.h \
 	 drmmode_display.c \
 	 drmmode_display.h
