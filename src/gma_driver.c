@@ -61,6 +61,7 @@
 
 #include "compat-api.h"
 #include "gma_driver.h"
+#include "gma_uxa.h"
 
 static void AdjustFrame(ADJUST_FRAME_ARGS_DECL);
 static Bool CloseScreen(CLOSE_SCREEN_ARGS_DECL);
@@ -962,6 +963,9 @@ ScreenInit(SCREEN_INIT_ARGS_DECL)
 
     if (serverGeneration == 1)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
+
+    if (!gma_uxa_init(gma, pScreen))
+        return FALSE;
 
     return EnterVT(VT_FUNC_ARGS);
 }

@@ -39,4 +39,6 @@ gma500_drv_la_SOURCES = \
 	 gma_driver.c \
 	 gma_driver.h \
 	 drmmode_display.c \
-	 drmmode_display.h
+	 drmmode_display.h \
+	 gma_uxa.c \
+	 gma_uxa.h

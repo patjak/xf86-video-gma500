@@ -33,6 +33,7 @@
 #include <damage.h>
 
 #include "drmmode_display.h"
+#include "uxa/uxa.h"
 #define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, gmag);
 
 typedef struct
@@ -75,6 +76,8 @@ typedef struct _gma500Rec
 
     DamagePtr damage;
     Bool dirty_enabled;
+
+    uxa_driver_t *uxa;
 
 } gma500Rec, *gma500Ptr;
 
