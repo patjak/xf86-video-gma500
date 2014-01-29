@@ -31,6 +31,7 @@
 #ifdef HAVE_UDEV
 #include "libudev.h"
 #endif
+#include "libgma.h"
 
 /* the perfect storm */
 #if XF86_CRTC_VERSION >= 5 && defined(HAVE_DRMPRIMEFDTOHANDLE) && HAVE_SCREEN_SPECIFIC_PRIVATE_KEYS
@@ -40,14 +41,6 @@
 #if XORG_VERSION_CURRENT >= XORG_VERSION_NUMERIC(1,14,99,2,0)
 #define DamageUnregister(d, dd) DamageUnregister(dd)
 #endif
-
-struct dumb_bo {
-    uint32_t handle;
-    uint32_t size;
-    void *ptr;
-    int map_count;
-    uint32_t pitch;
-};
 
 typedef struct {
     int fd;
@@ -61,7 +54,7 @@ typedef struct {
     InputHandlerProc uevent_handler;
 #endif
     drmEventContext event_context;
-    struct dumb_bo *front_bo;
+    struct gma_bo *front_bo;
     Bool sw_cursor;
 
     Bool shadow_enable;
@@ -76,7 +69,7 @@ typedef struct {
     drmmode_ptr drmmode;
     drmModeCrtcPtr mode_crtc;
     int hw_id;
-    struct dumb_bo *cursor_bo;
+    struct gma_bo *cursor_bo;
     unsigned rotate_fb_id;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
     DamagePtr slave_damage;
@@ -106,7 +99,7 @@ typedef struct {
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
 typedef struct _gmaPixmapPriv {
     uint32_t fb_id;
-    struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
+    struct gma_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
 } gmaPixmapPrivRec, *gmaPixmapPrivPtr;
 
 

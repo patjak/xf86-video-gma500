@@ -42,6 +42,7 @@
 #include <xf86drm.h>
 #include "xf86Crtc.h"
 #include "drmmode_display.h"
+#include "libgma.h"
 
 /* DPMS */
 #ifdef HAVE_XEXTPROTO_71
@@ -52,96 +53,10 @@
 #endif
 #include "compat-api.h"
 
-static struct dumb_bo *dumb_bo_create(int fd,
-			  const unsigned width, const unsigned height,
-			  const unsigned bpp)
-{
-	struct drm_mode_create_dumb arg;
-	struct dumb_bo *bo;
-	int ret;
-
-	bo = calloc(1, sizeof(*bo));
-	if (!bo)
-		return NULL;
-
-	memset(&arg, 0, sizeof(arg));
-	arg.width = width;
-	arg.height = height;
-	arg.bpp = bpp;
-	
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
-	if (ret)
-		goto err_free;
-
-	bo->handle = arg.handle;
-	bo->size = arg.size;
-	bo->pitch = arg.pitch;
-
-	return bo;
- err_free:
-	free(bo);
-	return NULL;
-}
-
-static int dumb_bo_map(int fd, struct dumb_bo *bo)
-{
-	struct drm_mode_map_dumb arg;
-	int ret;
-	void *map;
-
-	if (bo->ptr) {
-		bo->map_count++;
-		return 0;
-	}
-
-	memset(&arg, 0, sizeof(arg));
-	arg.handle = bo->handle;
-
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
-	if (ret)
-		return ret;
-
-	map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-		   fd, arg.offset);
-	if (map == MAP_FAILED)
-		return -errno;
-
-	bo->ptr = map;
-	return 0;
-}
-
-#if 0
-static int dumb_bo_unmap(int fd, struct dumb_bo *bo)
-{
-	bo->map_count--;
-	return 0;
-}
-#endif
-
-static int dumb_bo_destroy(int fd, struct dumb_bo *bo)
-{
-	struct drm_mode_destroy_dumb arg;
-	int ret;
-	
-	if (bo->ptr) {
-		munmap(bo->ptr, bo->size);
-		bo->ptr = NULL;
-	}
-
-	memset(&arg, 0, sizeof(arg));
-	arg.handle = bo->handle;
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &arg);
-	if (ret)
-		return -errno;
-
-	free(bo);
-	return 0;
-}
-
 #ifdef MODESETTING_OUTPUT_SLAVE_SUPPORT
-static struct dumb_bo *dumb_get_bo_from_handle(int fd, int handle, int pitch, int size)
+static struct gma_bo *gma_get_bo_from_handle(int fd, int handle, int pitch, int size)
 {
-  	struct dumb_bo *bo;
+  	struct gma_bo *bo;
 	int ret;
 
 	bo = calloc(1, sizeof(*bo));
@@ -166,7 +81,7 @@ Bool drmmode_SetSlaveBO(PixmapPtr ppix,
 {
     	gmaPixmapPrivPtr ppriv = gmaGetPixmapPriv(drmmode, ppix);
 
-	ppriv->backing_bo = dumb_get_bo_from_handle(drmmode->fd, fd_handle, pitch, size);
+	ppriv->backing_bo = gma_get_bo_from_handle(drmmode->fd, fd_handle, pitch, size);
 	if (!ppriv->backing_bo)
 		return FALSE;
 
@@ -1134,7 +1049,7 @@ drmmode_xf86crtc_resize (ScrnInfoPtr scrn, int width, int height)
 	drmmode_crtc_private_ptr
 		    drmmode_crtc = xf86_config->crtc[0]->driver_private;
 	drmmode_ptr drmmode = drmmode_crtc->drmmode;
-	struct dumb_bo *old_front = NULL;
+	struct gma_bo *old_front = NULL;
 	Bool	    ret;
 	ScreenPtr   screen = xf86ScrnToScreen(scrn);
 	uint32_t    old_fb_id;
@@ -1156,7 +1071,9 @@ drmmode_xf86crtc_resize (ScrnInfoPtr scrn, int width, int height)
 	old_fb_id = drmmode->fb_id;
 	old_front = drmmode->front_bo;
 
-	drmmode->front_bo = dumb_bo_create(drmmode->fd, width, height, scrn->bitsPerPixel);
+	drmmode->front_bo = gma_bo_create_surface(drmmode->fd, width, height,
+						  scrn->bitsPerPixel,
+						  GMA_BO_DISPLAY, 0);
 	if (!drmmode->front_bo)
 		goto fail;
 
@@ -1209,14 +1126,14 @@ drmmode_xf86crtc_resize (ScrnInfoPtr scrn, int width, int height)
 
 	if (old_fb_id) {
 		drmModeRmFB(drmmode->fd, old_fb_id);
-		dumb_bo_destroy(drmmode->fd, old_front);
+		gma_bo_destroy(drmmode->fd, old_front);
 	}
 
 	return TRUE;
 
  fail:
 	if (drmmode->front_bo)
-		dumb_bo_destroy(drmmode->fd, drmmode->front_bo);
+		gma_bo_destroy(drmmode->fd, drmmode->front_bo);
 	drmmode->front_bo = old_front;
 	scrn->virtualX = old_width;
 	scrn->virtualY = old_height;
@@ -1495,7 +1412,8 @@ Bool drmmode_create_initial_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 	width = pScrn->virtualX;
 	height = pScrn->virtualY;
 
-	drmmode->front_bo = dumb_bo_create(drmmode->fd, width, height, bpp);
+	drmmode->front_bo = gma_bo_create_surface(drmmode->fd, width, height,
+						  bpp, GMA_BO_DISPLAY, 0);
 	if (!drmmode->front_bo)
 		return FALSE;
 	pScrn->displayWidth = drmmode->front_bo->pitch / cpp;
@@ -1505,7 +1423,7 @@ Bool drmmode_create_initial_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 	for (i = 0; i < xf86_config->num_crtc; i++) {
 		xf86CrtcPtr crtc = xf86_config->crtc[i];
 		drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-		drmmode_crtc->cursor_bo = dumb_bo_create(drmmode->fd, width, height, bpp);
+		drmmode_crtc->cursor_bo = gma_bo_create(drmmode->fd, width * height * (bpp / 8), GMA_BO_CURSOR, 0);
 	}
 	return TRUE;
 }
@@ -1517,7 +1435,7 @@ void *drmmode_map_front_bo(drmmode_ptr drmmode)
 	if (drmmode->front_bo->ptr)
 		return drmmode->front_bo->ptr;
 
-	ret = dumb_bo_map(drmmode->fd, drmmode->front_bo);
+	ret = gma_bo_mmap(drmmode->fd, drmmode->front_bo);
 	if (ret)
 		return NULL;
 
@@ -1533,7 +1451,7 @@ void *drmmode_map_slave_bo(drmmode_ptr drmmode, gmaPixmapPrivPtr ppriv)
         if (ppriv->backing_bo->ptr)
                 return ppriv->backing_bo->ptr;
 
-        ret = dumb_bo_map(drmmode->fd, ppriv->backing_bo);
+        ret = gma_bo_mmap(drmmode->fd, ppriv->backing_bo);
         if (ret)
                 return NULL;
 
@@ -1548,7 +1466,7 @@ Bool drmmode_map_cursor_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 	for (i = 0; i < xf86_config->num_crtc; i++) {
 		xf86CrtcPtr crtc = xf86_config->crtc[i];
 		drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-		ret = dumb_bo_map(drmmode->fd, drmmode_crtc->cursor_bo);
+		ret = gma_bo_mmap(drmmode->fd, drmmode_crtc->cursor_bo);
 		if (ret)
 			return FALSE;
 	}
@@ -1565,13 +1483,13 @@ void drmmode_free_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 		drmmode->fb_id = 0;
 	}
 
-	dumb_bo_destroy(drmmode->fd, drmmode->front_bo);
+	gma_bo_destroy(drmmode->fd, drmmode->front_bo);
 	drmmode->front_bo = NULL;
 
 	for (i = 0; i < xf86_config->num_crtc; i++) {
 		xf86CrtcPtr crtc = xf86_config->crtc[i];
 		drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
-		dumb_bo_destroy(drmmode->fd, drmmode_crtc->cursor_bo);
+		gma_bo_destroy(drmmode->fd, drmmode_crtc->cursor_bo);
 	}
 }
 
@@ -1580,7 +1498,7 @@ void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int *depth,
 {
 	drmModeResPtr mode_res;
 	uint64_t value;
-	struct dumb_bo *bo;
+	struct gma_bo *bo;
 	uint32_t fb_id;
 	int ret;
 
@@ -1602,7 +1520,8 @@ void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int *depth,
 	if (mode_res->min_height == 0)
 		mode_res->min_height = 1;
 	/*create a bo */
-	bo = dumb_bo_create(drmmode->fd, mode_res->min_width, mode_res->min_height, 32);
+	bo = gma_bo_create_surface(drmmode->fd, mode_res->min_width,
+				   mode_res->min_height, 32, GMA_BO_DISPLAY, 0);
 	if (!bo) {
 		*bpp = 24;
 		goto out;
@@ -1613,14 +1532,14 @@ void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int *depth,
 
 	if (ret) {
 		*bpp = 24;
-		dumb_bo_destroy(drmmode->fd, bo);
+		gma_bo_destroy(drmmode->fd, bo);
 		goto out;
 	}
 
 	drmModeRmFB(drmmode->fd, fb_id);
 	*bpp = 32;
 
-	dumb_bo_destroy(drmmode->fd, bo);
+	gma_bo_destroy(drmmode->fd, bo);
 out:	
 	drmModeFreeResources(mode_res);
 	return;
