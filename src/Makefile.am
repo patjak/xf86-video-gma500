@@ -43,4 +43,6 @@ gma500_drv_la_SOURCES = \
 	 gma_uxa.c \
 	 gma_uxa.h \
 	 libgma.c \
-	 libgma.h
+	 libgma.h \
+	 pvr_2d.c \
+	 pvr_2d.h
