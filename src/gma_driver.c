@@ -797,6 +797,8 @@ CreateScreenResources(ScreenPtr pScreen)
     if (!pScreen->ModifyPixmapHeader(rootPixmap, -1, -1, -1, -1, -1, pixels))
 	FatalError("Couldn't adjust screen pixmap\n");
 
+    gma_set_surface(rootPixmap, gma->drmmode.front_bo);
+
     if (gma->drmmode.shadow_enable) {
 	if (!shadowAdd(pScreen, rootPixmap, shadowUpdatePackedWeak(),
 		       gmaShadowWindow, 0, 0))
@@ -953,19 +955,27 @@ ScreenInit(SCREEN_INIT_ARGS_DECL)
     pScreen->SetSharedPixmapBacking = gmaSetSharedPixmapBacking;
 #endif
 
+    if (!gma_uxa_init(gma, pScreen))
+        return FALSE;
+
+    DamageSetup(pScreen);
+
+    pScreen->totalPixmapSize = BitmapBytePad((sizeof(PixmapRec) +
+                               dixScreenSpecificPrivatesSize(pScreen, PRIVATE_PIXMAP)) * 8);
+
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
 
     if (!miCreateDefColormap(pScreen))
 	return FALSE;
 
+    if (!uxa_resources_init(pScreen))
+        return FALSE;
+
     xf86DPMSInit(pScreen, xf86DPMSSet, 0);
 
     if (serverGeneration == 1)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
-
-    if (!gma_uxa_init(gma, pScreen))
-        return FALSE;
 
     return EnterVT(VT_FUNC_ARGS);
 }

@@ -36,6 +36,12 @@
 #include "uxa/uxa.h"
 #define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, gmag);
 
+#if HAS_DEVPRIVATEKEYREC
+extern DevPrivateKeyRec uxa_pixmap_index;
+#else
+extern int uxa_pixmap_index;
+#endif
+
 typedef struct
 {
     int lastInstance;
