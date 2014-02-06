@@ -10,6 +10,7 @@ struct gma_bo {
 	uint32_t size;
 	uint32_t type;
 	uint32_t pitch;
+	uint32_t bpp;
 	void *ptr;
 	int map_count;
 };

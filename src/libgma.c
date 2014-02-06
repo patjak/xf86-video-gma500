@@ -17,6 +17,9 @@ struct gma_bo *gma_bo_create(int fd, uint32_t size, uint32_t type, uint32_t flag
 	struct gma_bo *bo;
 	int ret;
 
+	if (size == 0)
+		return NULL;
+
 	bo = calloc(1, sizeof(struct gma_bo));
 	if (!bo)
 		return NULL;
@@ -45,14 +48,19 @@ struct gma_bo *gma_bo_create_surface(int fd, uint32_t width, uint32_t height,
 				     uint32_t flags)
 {
 	struct gma_bo *bo;
-	uint32_t pitch = ALIGN(width * ((bpp + 7) / 8), 64);
-	uint32_t size = pitch * height;
+	uint32_t pitch, size;
+
+	/* We might need 32 bpp for 24 bit depth */
+	bpp = (bpp == 24) ? 32 : bpp;
+	pitch = ALIGN(width * ((bpp + 7) / 8), 64);
+	size = pitch * height;
 
 	bo = gma_bo_create(fd, size, type, flags);
 	if (!bo)
 		return NULL;
 
 	bo->pitch = pitch;
+	bo->bpp = bpp;
 
 	return bo;
 }
@@ -62,6 +70,11 @@ int gma_bo_mmap(int fd, struct gma_bo *bo)
 	struct drm_gma_gem_mmap args;
 	int ret;
 	void *map;
+
+	bo->map_count++;
+
+	if (bo->ptr)
+		return 0;
 
 	memset(&args, 0, sizeof(args));
 
