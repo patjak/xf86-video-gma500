@@ -24,6 +24,16 @@
 #include <xf86.h>
 #include "pvr_2d.h"
 
+uint32_t pvr_copy_direction(int xdir, int ydir)
+{
+	if (xdir < 0)
+		return (ydir < 0) ? PSB_2D_COPYORDER_BR2TL :
+				    PSB_2D_COPYORDER_TR2BL;
+	else
+		return (ydir < 0) ? PSB_2D_COPYORDER_BL2TR :
+				    PSB_2D_COPYORDER_TL2BR;
+}
+
 /*
  * Pattern as planemask.
  */

@@ -385,6 +385,7 @@ static const int pvr_pattern_rop[] = {
 	0xA5, 0x55, 0xF5, 0x0F, 0xAF, 0x5F, 0xFF
 };
 
+extern uint32_t pvr_copy_direction(int xdir, int ydir);
 extern int pvr_copy_rop_pm(int xrop);
 extern int pvr_pat_rop_pm(int xrop);
 extern uint32_t pvr_bpp_to_format(int bpp, int is_dst);

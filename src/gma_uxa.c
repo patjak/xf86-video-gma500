@@ -8,6 +8,7 @@
 #include "gma_driver.h"
 #include "gma_uxa.h"
 #include "libgma.h"
+#include "pvr_2d.h"
 
 #if HAS_DEVPRIVATEKEYREC
 DevPrivateKeyRec uxa_pixmap_index;
@@ -167,27 +168,101 @@ gma_uxa_done_solid(PixmapPtr pixmap)
 }
 
 static Bool
-gma_uxa_check_copy(PixmapPtr source, PixmapPtr dest, int alu, Pixel planemask)
+gma_uxa_check_copy(PixmapPtr src, PixmapPtr dst, int alu, Pixel planemask)
 {
-	return FALSE;
+	struct gma_bo *dst_bo = gma_get_surface(dst);
+	struct gma_bo *src_bo = gma_get_surface(src);
+
+	if (!dst_bo || !src_bo)
+		return FALSE;
+
+	if (!UXA_PM_IS_SOLID ((DrawablePtr)src, planemask) || alu != GXcopy)
+		return FALSE;
+
+	return TRUE;
 }
 
 static Bool
-gma_uxa_prepare_copy(PixmapPtr source, PixmapPtr dest, int xdir, int ydir,
+gma_uxa_prepare_copy(PixmapPtr src, PixmapPtr dst, int xdir, int ydir,
 		     int alu, Pixel planemask)
 {
-	return FALSE;
+	ScreenPtr screen = dst->drawable.pScreen;
+	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+	gma500Ptr gma = gma500PTR(scrn);
+	struct gma_bo *dst_bo = gma_get_surface(dst);
+	struct gma_bo *src_bo = gma_get_surface(src);
+	struct gma_blit_op *op = &dst_bo->blit_op;
+
+	/* Prepare the blitter operation */
+	op->dst_bo = dst_bo;
+	op->src_bo = src_bo;
+	op->direction = pvr_copy_direction(xdir, ydir);
+	op->rop = pvr_copy_rop[alu];
+	op->dst_fmt = pvr_bpp_to_format(dst->drawable.bitsPerPixel, 1);
+	op->src_fmt = pvr_bpp_to_format(src->drawable.bitsPerPixel, 0);
+	op->dst_stride = dst_bo->pitch;
+	op->src_stride = src_bo->pitch;
+
+	if (!op->dst_fmt || !op->src_fmt)
+		return FALSE;
+
+	op->cs_bo = gma_bo_create(gma->fd, 4096, GMA_BO_BLIT, 0);
+	if (!op->cs_bo)
+		return FALSE;
+
+	gma_bo_mmap(gma->fd, op->cs_bo);
+
+	return TRUE;
 }
 
 static void
-gma_uxa_copy(PixmapPtr dest, int src_x, int src_y, int dest_x, int dest_y,
+gma_uxa_copy(PixmapPtr dst, int src_x, int src_y, int dst_x, int dst_y,
 	     int width, int height)
 {
+	ScreenPtr screen = dst->drawable.pScreen;
+	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+	gma500Ptr gma = gma500PTR(scrn);
+	struct gma_bo *dst_bo = gma_get_surface(dst);
+	struct gma_bo *src_bo = dst_bo->blit_op.src_bo;
+	struct gma_blit_op *op = &dst_bo->blit_op;
+	uint32_t size; /* Size of CS buffer */
+	struct gma_bo *cs_bo = op->cs_bo;
+
+	/* Work around hardware bug (not sure if this is a restriction on both width and height */
+	if (width == 8 && height == 8) {
+		gma_uxa_copy(dst, src_x, src_y, dst_x, dst_y, 4, 4);
+		gma_uxa_copy(dst, src_x + 4, src_y, dst_x + 4, dst_y, 4, 4);
+		gma_uxa_copy(dst, src_x, src_y + 4, dst_x, dst_y + 4, 4, 4);
+		gma_uxa_copy(dst, src_x + 4, src_y + 4, dst_x + 4, dst_y + 4, 4, 4);
+		return;
+	} else if (width == 8) {
+		gma_uxa_copy(dst, src_x, src_y, dst_x, dst_y, 4, height);
+		gma_uxa_copy(dst, src_x + 4, src_y, dst_x + 4, dst_y, 4, height);
+		return;
+	} else if (height == 8) {
+		gma_uxa_copy(dst, src_x, src_y, dst_x, dst_y, width, 4);
+		gma_uxa_copy(dst, src_x, src_y + 4, dst_x, dst_y + 4, width, 4);
+		return;
+	}
+
+	/* Build command stream */
+	size = pvr_copy(cs_bo->ptr, op->rop,
+			src_bo->handle, 0, op->src_stride, op->src_fmt,
+			dst_bo->handle, 0, op->dst_stride, op->dst_fmt,
+			src_x, src_y, dst_x, dst_y, width, height, op->direction);
+
+	gma_blt_submit(gma->fd, cs_bo->handle, size);
 }
 
 static void
-gma_uxa_done_copy(PixmapPtr dest)
+gma_uxa_done_copy(PixmapPtr dst)
 {
+	ScreenPtr screen = dst->drawable.pScreen;
+	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+	gma500Ptr gma = gma500PTR(scrn);
+	struct gma_bo *dst_bo = gma_get_surface(dst);
+
+	gma_bo_destroy(gma->fd, dst_bo->blit_op.cs_bo);
 }
 
 static Bool

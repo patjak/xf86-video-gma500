@@ -116,3 +116,18 @@ int gma_bo_destroy(int fd, struct gma_bo *bo)
 
 	return 0;
 }
+
+int gma_blt_submit(int fd, uint32_t handle, uint32_t size)
+{
+	struct drm_gma_gem_blt_submit args;
+	int ret;
+
+	memset(&args, 0, sizeof(args));
+
+	args.handle = handle;
+	args.size = size;
+
+	ret = drmIoctl(fd, DRM_IOCTL_GMA_GEM_BLT_SUBMIT, &args);
+
+	return ret;
+}
