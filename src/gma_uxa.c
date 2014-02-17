@@ -331,7 +331,6 @@ Bool gma_uxa_init(gma500Ptr gma, ScreenPtr screen)
 
 	/* Migration */
 	gma->uxa->put_image = gma_uxa_put_image;
-	gma->uxa->get_image = gma_uxa_get_image;
 
 	/* Solid */
 	gma->uxa->check_solid = gma_uxa_check_solid;
