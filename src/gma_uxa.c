@@ -246,20 +246,6 @@ gma_uxa_check_composite(int op, PicturePtr pSrcPict, PicturePtr pMaskPict,
 }
 
 static Bool
-gma_uxa_check_composite_target(PixmapPtr pixmap)
-{
-	return FALSE;
-}
-
-static Bool
-gma_uxa_prepare_composite(int op, PicturePtr pSrcPict, PicturePtr pMaskPict,
-			  PicturePtr pDstPict, PixmapPtr pSrc, PixmapPtr pMask,
-			  PixmapPtr pDst)
-{
-	return FALSE;
-}
-
-static Bool
 gma_uxa_put_image(PixmapPtr pixmap, int x, int y, int w, int h, char *src,
 		  int src_pitch)
 {
@@ -361,10 +347,6 @@ Bool gma_uxa_init(gma500Ptr gma, ScreenPtr screen)
 
 	/* Composite */
 	gma->uxa->check_composite = gma_uxa_check_composite;
-	gma->uxa->check_composite_target = gma_uxa_check_composite_target;
-	gma->uxa->prepare_composite = gma_uxa_prepare_composite;
-	gma->uxa->composite = NULL;
-	gma->uxa->done_composite = NULL;
 
 	screen->SetScreenPixmap = gma_uxa_set_screen_pixmap;
 	screen->CreatePixmap = gma_uxa_create_pixmap;
