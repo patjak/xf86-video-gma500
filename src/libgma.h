@@ -28,6 +28,8 @@ struct gma_bo {
 	uint32_t offset;
 	uint32_t size;
 	uint32_t type;
+	uint32_t width;
+	uint32_t height;
 	uint32_t pitch;
 	uint32_t bpp;
 	void *ptr;

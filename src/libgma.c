@@ -59,6 +59,8 @@ struct gma_bo *gma_bo_create_surface(int fd, uint32_t width, uint32_t height,
 	if (!bo)
 		return NULL;
 
+	bo->width = width;
+	bo->height = height;
 	bo->pitch = pitch;
 	bo->bpp = bpp;
 
