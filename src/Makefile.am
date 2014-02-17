@@ -42,6 +42,8 @@ gma500_drv_la_SOURCES = \
 	 drmmode_display.h \
 	 gma_uxa.c \
 	 gma_uxa.h \
+	 gma_cache.c \
+	 gma_cache.h \
 	 libgma.c \
 	 libgma.h \
 	 pvr_2d.c \

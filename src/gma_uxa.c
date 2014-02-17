@@ -9,6 +9,7 @@
 #include "gma_uxa.h"
 #include "libgma.h"
 #include "pvr_2d.h"
+#include "gma_cache.h"
 
 #if HAS_DEVPRIVATEKEYREC
 DevPrivateKeyRec uxa_pixmap_index;
