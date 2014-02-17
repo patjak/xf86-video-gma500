@@ -147,6 +147,22 @@ int gma_bo_destroy(int fd, struct gma_bo *bo)
 	return 0;
 }
 
+uint64_t gma_get_param(int fd, uint64_t param)
+{
+	struct drm_gma_param args;
+	int ret;
+
+	memset(&args, 0, sizeof(args));
+	args.param = param;
+
+	ret = drmIoctl(fd, DRM_IOCTL_GMA_GET_PARAM, &args);
+
+	if (ret)
+		return ret;
+
+	return args.value;
+}
+
 int gma_blt_submit(int fd, uint32_t handle, uint32_t size)
 {
 	struct drm_gma_gem_blt_submit args;

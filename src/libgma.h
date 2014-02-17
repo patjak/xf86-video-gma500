@@ -42,6 +42,7 @@ struct gma_bo *gma_bo_create_surface(int fd, uint32_t width, uint32_t height, ui
 struct gma_bo *gma_bo_wrap(int fd, char *ptr, uint32_t size);
 int gma_bo_mmap(int fd, struct gma_bo *bo);
 int gma_bo_destroy(int fd, struct gma_bo *bo);
+uint64_t gma_get_param(int fd, uint64_t param);
 int gma_blt_submit(int fd, uint32_t handle, uint32_t size);
 
 #endif
