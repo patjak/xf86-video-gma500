@@ -65,6 +65,34 @@ struct gma_bo *gma_bo_create_surface(int fd, uint32_t width, uint32_t height,
 	return bo;
 }
 
+struct gma_bo *gma_bo_wrap(int fd, char *ptr, uint32_t size)
+{
+	struct drm_gma_gem_wrap args;
+	struct gma_bo *bo;
+	int ret;
+
+	memset(&args, 0, sizeof(args));
+
+	args.addr = (uint32_t)ptr;
+	args.size = size;
+
+	ret = drmIoctl(fd, DRM_IOCTL_GMA_GEM_WRAP, &args);
+	if (ret)
+		return NULL;
+
+	bo = calloc(1, sizeof(struct gma_bo));
+	if (!bo)
+		return NULL;
+
+	bo->handle = args.handle;
+	bo->offset = args.offset;
+	bo->ptr = ptr;
+	bo->map_count = 1;
+	bo->wrapped = 1;
+
+	return bo;
+}
+
 int gma_bo_mmap(int fd, struct gma_bo *bo)
 {
 	struct drm_gma_gem_mmap args;
@@ -100,7 +128,7 @@ int gma_bo_destroy(int fd, struct gma_bo *bo)
 	struct drm_mode_destroy_dumb args;
 	int ret;
 
-	if (bo->ptr) {
+	if (!bo->wrapped && bo->ptr) {
 		munmap(bo->ptr, bo->size);
 		bo->ptr = NULL;
 	}
