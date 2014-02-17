@@ -258,6 +258,67 @@ gma_uxa_prepare_composite(int op, PicturePtr pSrcPict, PicturePtr pMaskPict,
 	return FALSE;
 }
 
+static Bool
+gma_uxa_put_image(PixmapPtr pixmap, int x, int y, int w, int h, char *src,
+		  int src_pitch)
+{
+	gma500Ptr gma = gma_from_pixmap(pixmap);
+	struct gma_bo *dst_bo = gma_get_surface(pixmap);
+	struct gma_bo *src_bo;
+	struct gma_blit_op *op;
+	char *dst;
+	int cpp = pixmap->drawable.bitsPerPixel / 8;
+	int row_len = w * cpp;
+	int num_rows = h;
+	int dst_pitch = pixmap->devKind;
+	uint32_t size = src_pitch * num_rows;
+
+	if (!dst_bo)
+		return FALSE;
+
+	if (!dst_bo->ptr)
+		gma_bo_mmap(gma->fd, dst_bo);
+
+	src_bo = user_cache_lookup(src, size);
+	if (!src_bo) {
+		src_bo = gma_bo_wrap(gma->fd, src, size);
+		if (!src_bo)
+			goto fallback;
+
+		user_cache_add(gma->fd, src_bo, src, size);
+	}
+
+	op = &dst_bo->blit_op;
+	op->src_bo = src_bo;
+	op->dst_bo = dst_bo;
+	op->direction = PSB_2D_COPYORDER_TL2BR;
+	op->src_fmt = pvr_bpp_to_format(pixmap->drawable.bitsPerPixel, 0);
+	op->dst_fmt = pvr_bpp_to_format(pixmap->drawable.bitsPerPixel, 1);
+	op->src_stride = src_pitch;
+	op->dst_stride = dst_bo->pitch;
+	op->rop = pvr_copy_rop[GXcopy];
+
+	gma_uxa_copy(pixmap, 0, 0, x, y, w, h);
+
+	return TRUE;
+
+fallback:
+	/* Sometimes we might get lucky */
+	if (row_len == src_pitch && src_pitch == dst_pitch) {
+		row_len = row_len * h;
+		num_rows = 1;
+	}
+
+	dst = (char *)dst_bo->ptr + y * dst_pitch + x * cpp;
+	do {
+		memcpy(dst, src, row_len);
+		dst += dst_pitch;
+		src += src_pitch;
+	} while (--num_rows);
+
+	return TRUE;
+}
+
 Bool gma_uxa_init(gma500Ptr gma, ScreenPtr screen)
 {
 	ScrnInfoPtr scrn = xf86ScreenToScrn (screen);
