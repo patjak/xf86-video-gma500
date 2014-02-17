@@ -36,6 +36,13 @@ gma_uxa_set_screen_pixmap(PixmapPtr pixmap)
 	pixmap->drawable.pScreen->devPrivate = pixmap;
 }
 
+static inline gma500Ptr gma_from_pixmap(PixmapPtr pixmap)
+{
+	ScreenPtr screen = pixmap->drawable.pScreen;
+	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+	return gma500PTR(scrn);
+}
+
 static PixmapPtr
 gma_uxa_create_pixmap(ScreenPtr screen, int w, int h, int depth, unsigned usage)
 {
@@ -71,9 +78,7 @@ fallback:
 static Bool
 gma_uxa_destroy_pixmap(PixmapPtr pixmap)
 {
-	ScreenPtr screen = pixmap->drawable.pScreen;
-	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-	gma500Ptr gma = gma500PTR(scrn);
+	gma500Ptr gma = gma_from_pixmap(pixmap);
 	struct gma_bo *bo;
 
 	/* Only remove bo if we're the last user */
@@ -101,25 +106,9 @@ gma_uxa_pixmap_is_offscreen(PixmapPtr pixmap)
 }
 
 static Bool
-gma_uxa_put_image(PixmapPtr pixmap, int x, int y, int w, int h, char *src,
-		  int src_pitch)
-{
-	return FALSE;
-}
-
-static Bool
-gma_uxa_get_image(PixmapPtr pixmap, int x, int y, int w, int h, char *dst,
-		  int dst_pitch)
-{
-	return FALSE;
-}
-
-static Bool
 gma_uxa_prepare_access(PixmapPtr pixmap, RegionPtr region, uxa_access_t access)
 {
-	ScreenPtr screen = pixmap->drawable.pScreen;
-	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-	gma500Ptr gma = gma500PTR(scrn);
+	gma500Ptr gma = gma_from_pixmap(pixmap);
 	struct gma_bo *bo;
 	int ret;
 
@@ -219,9 +208,7 @@ static void
 gma_uxa_copy(PixmapPtr dst, int src_x, int src_y, int dst_x, int dst_y,
 	     int width, int height)
 {
-	ScreenPtr screen = dst->drawable.pScreen;
-	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-	gma500Ptr gma = gma500PTR(scrn);
+	gma500Ptr gma = gma_from_pixmap(dst);
 	struct gma_bo *dst_bo = gma_get_surface(dst);
 	struct gma_bo *src_bo = dst_bo->blit_op.src_bo;
 	struct gma_blit_op *op = &dst_bo->blit_op;
