@@ -175,9 +175,6 @@ static Bool
 gma_uxa_prepare_copy(PixmapPtr src, PixmapPtr dst, int xdir, int ydir,
 		     int alu, Pixel planemask)
 {
-	ScreenPtr screen = dst->drawable.pScreen;
-	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-	gma500Ptr gma = gma500PTR(scrn);
 	struct gma_bo *dst_bo = gma_get_surface(dst);
 	struct gma_bo *src_bo = gma_get_surface(src);
 	struct gma_blit_op *op = &dst_bo->blit_op;
@@ -195,12 +192,6 @@ gma_uxa_prepare_copy(PixmapPtr src, PixmapPtr dst, int xdir, int ydir,
 	if (!op->dst_fmt || !op->src_fmt)
 		return FALSE;
 
-	op->cs_bo = gma_bo_create(gma->fd, 4096, GMA_BO_BLIT, 0);
-	if (!op->cs_bo)
-		return FALSE;
-
-	gma_bo_mmap(gma->fd, op->cs_bo);
-
 	return TRUE;
 }
 
@@ -213,7 +204,7 @@ gma_uxa_copy(PixmapPtr dst, int src_x, int src_y, int dst_x, int dst_y,
 	struct gma_bo *src_bo = dst_bo->blit_op.src_bo;
 	struct gma_blit_op *op = &dst_bo->blit_op;
 	uint32_t size; /* Size of CS buffer */
-	struct gma_bo *cs_bo = op->cs_bo;
+	struct gma_bo *cs_bo = gma->cs_bo;
 
 	/* Work around hardware bug (not sure if this is a restriction on both width and height */
 	if (width == 8 && height == 8) {
@@ -244,12 +235,6 @@ gma_uxa_copy(PixmapPtr dst, int src_x, int src_y, int dst_x, int dst_y,
 static void
 gma_uxa_done_copy(PixmapPtr dst)
 {
-	ScreenPtr screen = dst->drawable.pScreen;
-	ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-	gma500Ptr gma = gma500PTR(scrn);
-	struct gma_bo *dst_bo = gma_get_surface(dst);
-
-	gma_bo_destroy(gma->fd, dst_bo->blit_op.cs_bo);
 }
 
 static Bool
@@ -322,6 +307,9 @@ Bool gma_uxa_init(gma500Ptr gma, ScreenPtr screen)
 	screen->SetScreenPixmap = gma_uxa_set_screen_pixmap;
 	screen->CreatePixmap = gma_uxa_create_pixmap;
 	screen->DestroyPixmap = gma_uxa_destroy_pixmap;
+
+	gma->cs_bo = gma_bo_create(gma->fd, 4096, GMA_BO_BLIT, 0);
+	gma_bo_mmap(gma->fd, gma->cs_bo);
 
 	if (!uxa_driver_init(screen, gma->uxa)) {
 		xf86DrvMsg (scrn->scrnIndex, X_ERROR,

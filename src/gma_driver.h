@@ -84,6 +84,7 @@ typedef struct _gma500Rec
     Bool dirty_enabled;
 
     uxa_driver_t *uxa;
+    struct gma_bo *cs_bo;
 
 } gma500Rec, *gma500Ptr;
 

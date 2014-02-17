@@ -8,7 +8,6 @@
 struct gma_bo;
 
 struct gma_blit_op {
-	struct gma_bo *cs_bo;
 	struct gma_bo *src_bo;
 	struct gma_bo *dst_bo;
 	struct gma_bo *mask_bo;
