@@ -225,8 +225,8 @@ gma_uxa_copy(PixmapPtr dst, int src_x, int src_y, int dst_x, int dst_y,
 
 	/* Build command stream */
 	size = pvr_copy(cs_bo->ptr, op->rop,
-			src_bo->handle, 0, op->src_stride, op->src_fmt,
-			dst_bo->handle, 0, op->dst_stride, op->dst_fmt,
+			src_bo->handle, src_bo->offset, op->src_stride, op->src_fmt,
+			dst_bo->handle, dst_bo->offset, op->dst_stride, op->dst_fmt,
 			src_x, src_y, dst_x, dst_y, width, height, op->direction);
 
 	gma_blt_submit(gma->fd, cs_bo->handle, size);

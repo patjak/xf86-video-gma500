@@ -25,6 +25,7 @@ struct gma_blit_op {
 struct gma_bo {
 	struct gma_blit_op blit_op;
 	uint32_t handle;
+	uint32_t offset;
 	uint32_t size;
 	uint32_t type;
 	uint32_t pitch;
